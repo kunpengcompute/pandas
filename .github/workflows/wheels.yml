@@ -144,7 +144,7 @@ jobs:
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
         #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: sdist
           path: ./dist
@@ -242,11 +242,11 @@ jobs:
 
     steps:
       - name: Download all artefacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: dist          # everything lands in ./dist/**
 
-      # TODO: This step can be probably be achieved by actions/download-artifact@v7
+      # TODO: This step can be probably be achieved by actions/download-artifact@v8
       # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
