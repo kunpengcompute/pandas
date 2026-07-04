@@ -21,7 +21,7 @@ jobs:
     env:
       DEPRECATION_TRACKER_ISSUE: 56596
     steps:
-    - uses: actions/github-script@v8
+    - uses: actions/github-script@v9
       id: update-deprecation-issue
       with:
         script: |
