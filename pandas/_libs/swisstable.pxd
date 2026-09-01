@@ -1,3 +1,4 @@
+from cpython.object cimport PyObject
 from libc.stddef cimport size_t
 from libc.stdint cimport (
     int8_t,
@@ -9,21 +10,25 @@ from libc.stdint cimport (
     uint32_t,
     uint64_t,
 )
-from cpython.object cimport PyObject
 from numpy cimport (
-    intp_t,
     complex64_t,
     complex128_t,
+    intp_t,
 )
+
 ctypedef intp_t c_ssize_t
 
 # External declarations for all Swiss Table types
 cdef extern from "swisstable/swisstable_class.hpp" namespace "pandas::swisstable" nogil:
+    const size_t DIRECT_DUPLICATED_MIN_SIZE
+
     cdef cppclass NaNTraits[K]:
         @staticmethod
         K NaN()
+
         @staticmethod
         bint IsNaN(K key)
+
         @staticmethod
         bint AreEqual(K a, K b)
 
@@ -114,6 +119,13 @@ cdef extern from "swisstable/swisstable_class.hpp" namespace "pandas::swisstable
             uint8_t *result
         )
 
+        int duplicated_direct(
+            const K *keys,
+            size_t n,
+            uint8_t keep,
+            uint8_t *result
+        )
+
     # Complex types
     ctypedef struct swiss_complex64_t:
         float real
@@ -126,6 +138,7 @@ cdef extern from "swisstable/swisstable_class.hpp" namespace "pandas::swisstable
 
 # prototypes for sharing
 from pandas._libs.hashing cimport HashTable
+
 
 cdef class SwissUInt64Map(HashTable):
     cdef SwissTable[uint64_t, size_t] table
