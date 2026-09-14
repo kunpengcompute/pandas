@@ -82,6 +82,15 @@ def group_prod_native_float(
     if N == 0 or K == 0 or len(counts) == 0:
         return False
 
+    # The fused group_prod has always enforced these shape invariants; the
+    # kernels index counts[lab] and out[lab] with boundscheck disabled.
+    if labels.shape[0] != N:
+        raise ValueError("len(index) != len(labels)")
+    if counts.shape[0] != out.shape[0]:
+        raise ValueError("len(counts) != out.shape[0]")
+    if out.shape[1] != K:
+        raise ValueError("out.shape[1] != values.shape[1]")
+
     if K == 1:
         # min_count <= 0 keeps below-min-count groups at the product
         # identity, so no nobs bookkeeping is needed

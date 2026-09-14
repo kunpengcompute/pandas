@@ -233,9 +233,11 @@ inline size_t normalize_capacity(size_t n) noexcept
 inline size_t capacity_to_growth(size_t capacity) noexcept
 {
     if (capacity == 0) return 0;
-    // 13/16 = 81.25% load factor
-    // Multiply first to preserve precision (though capacity is always power-of-2)
-    return capacity * 13 / GROUP_WIDTH;
+    // 13/16 = 81.25% load factor. Dividing first keeps the multiplication
+    // below SIZE_MAX for every power-of-two capacity (capacity / GROUP_WIDTH
+    // is exact because normalize_capacity only returns powers of two >= 16),
+    // where capacity * 13 itself could wrap on 32-bit platforms.
+    return (capacity / GROUP_WIDTH) * 13;
 }
 
 // =============================================================================
@@ -496,7 +498,23 @@ public:
     {
         destroy();
         if (capacity > 0) {
+            // Two overflow guards, needed only on 32-bit platforms (64-bit
+            // requests of these magnitudes simply fail to allocate):
+            // 1. the load-factor conversion below must not wrap size_t;
+            // 2. the resulting slot capacity must admit a {ctrl|keys|vals}
+            //    layout: the per-slot cost is 1 + sizeof(Key) + sizeof(Value)
+            //    bytes plus at most 128 bytes of alignment slop, and every
+            //    calc_alloc_size term and partial sum stays below that total.
+            // Any rejection leaves the table empty: capacity_, keys_ and
+            // vals_ are not set.
+            if (capacity > (SIZE_MAX - 12) / GROUP_WIDTH) {
+                return 0;
+            }
             capacity = normalize_capacity((capacity * GROUP_WIDTH + 12) / 13);  // load factory
+            if (capacity > (SIZE_MAX - 128)
+                               / (sizeof(Key) + sizeof(Value) + 1)) {
+                return 0;
+            }
             size_t keys_offset, vals_offset;
             size_t alloc_size = calc_alloc_size(capacity, &keys_offset, &vals_offset);
 
