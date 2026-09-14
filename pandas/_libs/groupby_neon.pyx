@@ -33,21 +33,21 @@ cdef extern from "pandas/portable.h":
 
 
 cdef extern from "pandas/groupby_neon.h":
-    void pandas_group_prod_float64_neon(
+    int pandas_group_prod_float64_neon(
         float64_t*, const float64_t*, const intp_t*, int64_t*,
-        Py_ssize_t, Py_ssize_t,
+        Py_ssize_t, Py_ssize_t, Py_ssize_t,
     ) noexcept nogil
-    void pandas_group_prod_float32_neon(
+    int pandas_group_prod_float32_neon(
         float32_t*, const float32_t*, const intp_t*, int64_t*,
-        Py_ssize_t, Py_ssize_t,
+        Py_ssize_t, Py_ssize_t, Py_ssize_t,
     ) noexcept nogil
-    void pandas_group_prod_float64_neon_colmajor(
+    int pandas_group_prod_float64_neon_colmajor(
         float64_t*, const float64_t*, const intp_t*, int64_t*,
-        Py_ssize_t, Py_ssize_t,
+        Py_ssize_t, Py_ssize_t, Py_ssize_t,
     ) noexcept nogil
-    void pandas_group_prod_float32_neon_colmajor(
+    int pandas_group_prod_float32_neon_colmajor(
         float32_t*, const float32_t*, const intp_t*, int64_t*,
-        Py_ssize_t, Py_ssize_t,
+        Py_ssize_t, Py_ssize_t, Py_ssize_t,
     ) noexcept nogil
 
 
@@ -71,9 +71,10 @@ def group_prod_native_float(
     ``group_prod`` otherwise.
     """
     cdef:
-        Py_ssize_t i, lab, N, K
-        bint is_c_contiguous, is_f_contiguous
+        Py_ssize_t i, lab, N, K, ngroups
+        bint is_c_contiguous, is_f_contiguous, bad_label = False
         floating val
+        int status
 
     if not pandas_is_aarch64() or not skipna or min_count > 0:
         return False
@@ -84,9 +85,10 @@ def group_prod_native_float(
 
     # The fused group_prod has always enforced these shape invariants; the
     # kernels index counts[lab] and out[lab] with boundscheck disabled.
+    ngroups = out.shape[0]
     if labels.shape[0] != N:
         raise ValueError("len(index) != len(labels)")
-    if counts.shape[0] != out.shape[0]:
+    if counts.shape[0] != ngroups:
         raise ValueError("len(counts) != out.shape[0]")
     if out.shape[1] != K:
         raise ValueError("out.shape[1] != values.shape[1]")
@@ -100,10 +102,15 @@ def group_prod_native_float(
                 lab = labels[i]
                 if lab < 0:
                     continue
+                if lab >= ngroups:
+                    bad_label = True
+                    break
                 counts[lab] += 1
                 val = values[i, 0]
                 if val == val:
                     out[lab, 0] *= val
+        if bad_label:
+            raise ValueError("labels out of bound for number of groups")
         return True
 
     is_c_contiguous = (
@@ -118,23 +125,30 @@ def group_prod_native_float(
         return False
 
     out[:, :] = 1
+    status = 0
     with nogil:
         if floating is float64_t:
             if is_c_contiguous:
-                pandas_group_prod_float64_neon(
-                    &out[0, 0], &values[0, 0], &labels[0], &counts[0], N, K
+                status = pandas_group_prod_float64_neon(
+                    &out[0, 0], &values[0, 0], &labels[0], &counts[0],
+                    N, K, ngroups,
                 )
             else:
-                pandas_group_prod_float64_neon_colmajor(
-                    &out[0, 0], &values[0, 0], &labels[0], &counts[0], N, K
+                status = pandas_group_prod_float64_neon_colmajor(
+                    &out[0, 0], &values[0, 0], &labels[0], &counts[0],
+                    N, K, ngroups,
                 )
         else:
             if is_c_contiguous:
-                pandas_group_prod_float32_neon(
-                    &out[0, 0], &values[0, 0], &labels[0], &counts[0], N, K
+                status = pandas_group_prod_float32_neon(
+                    &out[0, 0], &values[0, 0], &labels[0], &counts[0],
+                    N, K, ngroups,
                 )
             else:
-                pandas_group_prod_float32_neon_colmajor(
-                    &out[0, 0], &values[0, 0], &labels[0], &counts[0], N, K
+                status = pandas_group_prod_float32_neon_colmajor(
+                    &out[0, 0], &values[0, 0], &labels[0], &counts[0],
+                    N, K, ngroups,
                 )
+    if status != 0:
+        raise ValueError("labels out of bound for number of groups")
     return True

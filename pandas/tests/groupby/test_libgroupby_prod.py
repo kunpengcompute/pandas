@@ -468,3 +468,39 @@ def test_prod_native_entry_rejects_mismatched_shapes():
         group_prod_native_float(
             np.zeros((2, 1), dtype=np.float64), counts, values, labels, 0, True
         )
+
+
+def test_prod_rejects_out_of_range_labels():
+    # a non-negative label must fit the group count: before the bound
+    # check, out-of-range labels wrote past the nobs/prodx temporaries
+    # and corrupted the heap (process could crash at teardown)
+    values = np.array(
+        [[2.0, 3.0], [5.0, 7.0], [11.0, 13.0], [17.0, 19.0]], dtype=np.float64
+    )
+    labels_bad = np.array([0, 5, 0, 0], dtype=np.intp)
+    labels_ok = np.array([0, 1, 0, 1], dtype=np.intp)
+    out = np.zeros((2, 2), dtype=np.float64)
+    counts = np.zeros(2, dtype=np.int64)
+
+    with pytest.raises(ValueError, match="labels out of bound"):
+        group_prod(out, counts, values, labels_bad, None,
+                   result_mask=None, min_count=0, skipna=True)
+
+    with pytest.raises(ValueError, match="len.counts. != out.shape"):
+        group_prod(out, counts[:1], values, labels_ok, None,
+                   result_mask=None, min_count=0, skipna=True)
+
+    if not is_platform_arm():
+        return
+
+    with pytest.raises(ValueError, match="labels out of bound"):
+        group_prod_native_float(out, counts, values, labels_bad, 0, True)
+
+    values_k1 = values[:, :1].copy()
+    out_k1 = np.zeros((2, 1), dtype=np.float64)
+    with pytest.raises(ValueError, match="labels out of bound"):
+        group_prod_native_float(out_k1, counts, values_k1, labels_bad, 0, True)
+
+    values_f = np.asfortranarray(values)
+    with pytest.raises(ValueError, match="labels out of bound"):
+        group_prod_native_float(out, counts, values_f, labels_bad, 0, True)
