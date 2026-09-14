@@ -53,6 +53,25 @@ python -m pip install -e . --no-build-isolation
 使用 `--no-build-isolation` 时，当前 Python 环境需要预先安装
 `pyproject.toml` 中声明的构建依赖。
 
+## 容器环境部署
+
+容器环境部署通过基于镜像构建容器环境放方式来部署
+
+### 基于镜像构建容器环境
+
+基于镜像构建容器环境，首先需要获取镜像。通过命令直接拉取预构建镜像（推荐）
+
+#### 步骤 获取镜像
+
+##### 选项：直接拉取预构建镜像
+
+拉取镜像的命令为：
+
+```shell
+docker pull swr.cn-north-4.myhuaweicloud.com/cloud_boostkit/openeuler22.03_lts_sp3:numpy001
+```
+
+
 ## 特性概览
 
 ### ARM64 / 鲲鹏性能优化
