@@ -1225,3 +1225,35 @@ class TestSwissComplexAlgorithms:
 
         with pytest.raises(ValueError, match="keep must be either"):
             duplicated(values, keep="invalid")
+
+
+class TestSizeHintOverflow:
+    """
+    Guards against the 32-bit size_t layout wraparound: a huge capacity
+    request must be refused (MemoryError/OverflowError) or served safely,
+    never turned into an under-allocated block.
+    """
+
+    def test_ctor_rejects_unrepresentable_capacity(self):
+        # 2**60 * GROUP_WIDTH overflows size_t on every platform, so the
+        # constructor must raise instead of silently ignoring the failed
+        # reserve(); on 32-bit platforms the int-to-size_t conversion
+        # raises OverflowError before reserve() runs.
+        with pytest.raises((MemoryError, OverflowError)):
+            swisstable.SwissFloat32Map(size_hint=2**60)
+
+    def test_factorize_huge_size_hint(self):
+        # 218103809 elements normalize to a 2**29-slot table whose layout
+        # overflows 32-bit size_t: factorize must either work (64-bit) or
+        # raise MemoryError (32-bit), never corrupt memory.
+        values = np.array([1.5, 2.5, 1.5, 3.5], dtype=np.float32)
+        try:
+            codes, uniques = pd.factorize(values, size_hint=218_103_809)
+        except MemoryError:
+            return
+        tm.assert_numpy_array_equal(
+            codes, np.array([0, 1, 0, 2], dtype=np.intp)
+        )
+        tm.assert_numpy_array_equal(
+            uniques, np.array([1.5, 2.5, 3.5], dtype=np.float32)
+        )

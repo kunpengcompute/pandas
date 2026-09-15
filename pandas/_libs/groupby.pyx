@@ -1360,14 +1360,18 @@ def group_prod(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
+        Py_ssize_t ngroups = out.shape[0]
         int64float_t val, nan_val
         int64float_t[:, ::1] prodx
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint isna_entry, isna_result, uses_mask = mask is not None
+        bint bad_label = False
 
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
+    if ncounts != ngroups:
+        raise ValueError("len(counts) != out.shape[0]")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
     prodx = np.ones((<object>out).shape, dtype=(<object>out).base.dtype)
@@ -1380,6 +1384,13 @@ def group_prod(
             lab = labels[i]
             if lab < 0:
                 continue
+
+            # counts, nobs, prodx and result_mask are all indexed with
+            # boundscheck disabled: an out-of-range label writes past the
+            # nobs/prodx temporaries and corrupts the heap.
+            if lab >= ngroups:
+                bad_label = True
+                break
 
             counts[lab] += 1
             for j in range(K):
@@ -1408,6 +1419,9 @@ def group_prod(
                         result_mask[lab, j] = True
                     else:
                         prodx[lab, j] = nan_val
+
+    if bad_label:
+        raise ValueError("labels out of bound for number of groups")
 
     _check_below_mincount(
         out, uses_mask, result_mask, ncounts, K, nobs, min_count, prodx

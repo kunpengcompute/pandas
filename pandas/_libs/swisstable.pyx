@@ -82,8 +82,8 @@ cdef class SwissFloat64Map(HashTable):
 
     def __cinit__(self, size_t size_hint=0):
         self.uses_mask = False
-        if size_hint > 0:
-            self.table.reserve(size_hint)
+        if size_hint > 0 and not self.table.reserve(size_hint):
+            raise MemoryError("SwissTable: cannot reserve requested capacity")
 
     def insert(self, double key, size_t value):
         cdef int ret = self.table.insert(key, value)
@@ -625,8 +625,8 @@ cdef class SwissFloat32Map(HashTable):
 
     def __cinit__(self, size_t size_hint=0):
         self.uses_mask = False
-        if size_hint > 0:
-            self.table.reserve(size_hint)
+        if size_hint > 0 and not self.table.reserve(size_hint):
+            raise MemoryError("SwissTable: cannot reserve requested capacity")
 
     def insert(self, float key, size_t value):
         cdef int ret = self.table.insert(key, value)
@@ -1163,8 +1163,8 @@ cdef class SwissComplex64Map(HashTable):
 
     def __cinit__(self, size_t size_hint=0):
         self.uses_mask = False
-        if size_hint > 0:
-            self.table.reserve(size_hint)
+        if size_hint > 0 and not self.table.reserve(size_hint):
+            raise MemoryError("SwissTable: cannot reserve requested capacity")
 
     cdef swiss_complex64_t _to_c_complex(self, object key):
         cdef swiss_complex64_t c_key
@@ -1726,8 +1726,8 @@ cdef class SwissComplex128Map(HashTable):
 
     def __cinit__(self, size_t size_hint=0):
         self.uses_mask = False
-        if size_hint > 0:
-            self.table.reserve(size_hint)
+        if size_hint > 0 and not self.table.reserve(size_hint):
+            raise MemoryError("SwissTable: cannot reserve requested capacity")
 
     cdef swiss_complex128_t _to_c_complex(self, object key):
         cdef swiss_complex128_t c_key

@@ -4,15 +4,19 @@
 #  include <arm_neon.h>
 #endif
 
-void pandas_group_prod_float64_neon(double *prodx, const double *values,
-                                    const npy_intp *labels, int64_t *counts,
-                                    Py_ssize_t nrows, Py_ssize_t ncols) {
+int pandas_group_prod_float64_neon(double *prodx, const double *values,
+                                   const npy_intp *labels, int64_t *counts,
+                                   Py_ssize_t nrows, Py_ssize_t ncols,
+                                   Py_ssize_t ngroups) {
 #if defined(__aarch64__)
   const float64x2_t ones = vdupq_n_f64(1.0);
   for (Py_ssize_t i = 0; i < nrows; ++i) {
     const npy_intp lab = labels[i];
     if (lab < 0) {
       continue;
+    }
+    if (lab >= ngroups) {
+      return -1;
     }
     counts[lab] += 1;
     const double *row = values + i * ncols;
@@ -32,17 +36,22 @@ void pandas_group_prod_float64_neon(double *prodx, const double *values,
     }
   }
 #endif
+  return 0;
 }
 
-void pandas_group_prod_float32_neon(float *prodx, const float *values,
-                                    const npy_intp *labels, int64_t *counts,
-                                    Py_ssize_t nrows, Py_ssize_t ncols) {
+int pandas_group_prod_float32_neon(float *prodx, const float *values,
+                                   const npy_intp *labels, int64_t *counts,
+                                   Py_ssize_t nrows, Py_ssize_t ncols,
+                                   Py_ssize_t ngroups) {
 #if defined(__aarch64__)
   const float32x4_t ones = vdupq_n_f32(1.0f);
   for (Py_ssize_t i = 0; i < nrows; ++i) {
     const npy_intp lab = labels[i];
     if (lab < 0) {
       continue;
+    }
+    if (lab >= ngroups) {
+      return -1;
     }
     counts[lab] += 1;
     const float *row = values + i * ncols;
@@ -62,19 +71,24 @@ void pandas_group_prod_float32_neon(float *prodx, const float *values,
     }
   }
 #endif
+  return 0;
 }
 
-void pandas_group_prod_float64_neon_colmajor(double *prodx,
-                                             const double *values,
-                                             const npy_intp *labels,
-                                             int64_t *counts, Py_ssize_t nrows,
-                                             Py_ssize_t ncols) {
+int pandas_group_prod_float64_neon_colmajor(double *prodx,
+                                            const double *values,
+                                            const npy_intp *labels,
+                                            int64_t *counts, Py_ssize_t nrows,
+                                            Py_ssize_t ncols,
+                                            Py_ssize_t ngroups) {
 #if defined(__aarch64__)
   const float64x2_t ones = vdupq_n_f64(1.0);
   for (Py_ssize_t i = 0; i < nrows; ++i) {
     const npy_intp lab = labels[i];
     if (lab < 0) {
       continue;
+    }
+    if (lab >= ngroups) {
+      return -1;
     }
     counts[lab] += 1;
     double *acc = prodx + lab * ncols;
@@ -94,18 +108,24 @@ void pandas_group_prod_float64_neon_colmajor(double *prodx,
     }
   }
 #endif
+  return 0;
 }
 
-void pandas_group_prod_float32_neon_colmajor(float *prodx, const float *values,
-                                             const npy_intp *labels,
-                                             int64_t *counts, Py_ssize_t nrows,
-                                             Py_ssize_t ncols) {
+int pandas_group_prod_float32_neon_colmajor(float *prodx,
+                                            const float *values,
+                                            const npy_intp *labels,
+                                            int64_t *counts, Py_ssize_t nrows,
+                                            Py_ssize_t ncols,
+                                            Py_ssize_t ngroups) {
 #if defined(__aarch64__)
   const float32x4_t ones = vdupq_n_f32(1.0f);
   for (Py_ssize_t i = 0; i < nrows; ++i) {
     const npy_intp lab = labels[i];
     if (lab < 0) {
       continue;
+    }
+    if (lab >= ngroups) {
+      return -1;
     }
     counts[lab] += 1;
     float *acc = prodx + lab * ncols;
@@ -127,4 +147,5 @@ void pandas_group_prod_float32_neon_colmajor(float *prodx, const float *values,
     }
   }
 #endif
+  return 0;
 }

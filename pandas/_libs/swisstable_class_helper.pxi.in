@@ -28,8 +28,8 @@ cdef class Swiss{{name}}Map(HashTable):
 
     def __cinit__(self, size_t size_hint=0):
         self.uses_mask = False
-        if size_hint > 0:
-            self.table.reserve(size_hint)
+        if size_hint > 0 and not self.table.reserve(size_hint):
+            raise MemoryError("SwissTable: cannot reserve requested capacity")
 
     def insert(self, {{c_type}} key, size_t value):
         cdef int ret = self.table.insert(key, value)
