@@ -35,6 +35,24 @@ BoostKit 应用使能套件生态的一部分，旨在提升 pandas 在 ARM64 / 
 具体构建依赖和版本要求请以 `pyproject.toml`、`meson.build` 和
 `doc/source/development/contributing_environment.rst` 中的说明为准。
 
+## 容器环境部署
+
+容器环境部署通过基于镜像构建容器环境放方式来部署
+
+### 基于镜像构建容器环境
+
+基于镜像构建容器环境，首先需要获取镜像。通过命令直接拉取预构建镜像（推荐）
+
+### 步骤 获取镜像
+
+### 选项：直接拉取预构建镜像
+
+拉取镜像的命令为：
+
+```shell
+docker pull swr.cn-north-4.myhuaweicloud.com/cloud_boostkit/openeuler22.03_lts_sp3:pandas-3.0.1
+```
+
 ## 源码构建
 
 安装测试和版本管理依赖：
