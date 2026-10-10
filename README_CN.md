@@ -52,7 +52,16 @@ BoostKit 应用使能套件生态的一部分，旨在提升 pandas 在 ARM64 / 
 ```shell
 docker pull swr.cn-north-4.myhuaweicloud.com/cloud_boostkit/openeuler22.03_lts_sp3:pandas-3.0.1
 ```
-
+### 镜像配置
+ 
+拉取镜像后需要配置环境变量，从而正确识别 conda 预装环境和完整 Python 工具链。
+```shell
+source /opt/miniforge3/etc/profile.d/conda.sh
+conda activate pandas_930
+export PATH=/opt/rh/gcc-toolset-12/root/usr/bin:$PATH
+```
+**推荐使用说明**：pandas_930 是镜像内预装的测试专用 conda 环境，包含完整的构建和测试依赖， 推荐用于功能测试（UT）和开发验证 。
+ 
 ## 源码构建
 
 安装测试和版本管理依赖：
