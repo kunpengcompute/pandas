@@ -9,7 +9,6 @@
 | 代码仓 | gitcode.com/boostkit/pandas |
 | Release | `v3.0.1-poc` |
 | wheel 文件 | `pandas-3.0.1+270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl` |
-| 基线提交 | master `5a98f9ba4026b41df4aa2babb0bd2dd840ae4c7b` |
 | 依赖 | numpy（建议配套使用 boostkit 优化版 numpy 2.4.3）、python-dateutil |
 | 说明 | 面向 ARM64/鲲鹏平台优化关键计算路径，与上游 pandas API、行为、异常语义和数值结果兼容 |
 
