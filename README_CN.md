@@ -210,6 +210,7 @@ asv continuous BASELINE_COMMIT OPTIMIZED_COMMIT -b benchmark_name
 
 详细的设计说明、构建指南、开发说明和 benchmark 请参阅以下文档或目录：
 
+- [鲲鹏优化版使用指南（quick_start）](doc/quick_start.md) - 鲲鹏优化版pandas发行版wheel包的下载校验、安装与生效验证指导。
 - [Pandas 数据结构与操作、数学与统计计算、时间序列分析及数据处理工具性能优化 RFC](<doc/rfc/26.2.0/RFC - Pandas 数据结构与操作、数学与统计计算、时间序列分析及数据处理工具性能优化.md>) - 本项目的优化目标、技术方案、功能设计和验证要求。
 - [鲲鹏 920B benchmark](asv_bench/benchmarks/aggregate_920b) - 面向鲲鹏 920B 平台的数据处理 benchmark。
 - [鲲鹏 950 benchmark](asv_bench/benchmarks/aggregate_950) - 面向鲲鹏 950 平台的数据处理 benchmark。
