@@ -215,9 +215,9 @@ ignore = [
 ]
 
 exclude = [
-  "doc/sphinxext/*.py",
-  "doc/build/*.py",
-  "doc/temp/*.py",
+  "docs/sphinxext/*.py",
+  "docs/build/*.py",
+  "docs/temp/*.py",
   ".eggs/*.py",
   "versioneer.py",
   # exclude asv benchmark environments from linting

@@ -34,7 +34,7 @@ complex changes to the documentation as well.
 Some other important things to know about the docs:
 
 * The pandas documentation consists of two parts: the docstrings in the code
-  itself and the docs in this folder ``doc/``.
+  itself and the docs in this folder ``docs/``.
 
   The docstrings provide a clear explanation of the usage of the individual
   functions, while the documentation in this folder consists of tutorial-like
@@ -71,7 +71,7 @@ Some other important things to know about the docs:
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
-* Our API documentation files in ``doc/source/reference`` house the auto-generated
+* Our API documentation files in ``docs/source/reference`` house the auto-generated
   documentation from the docstrings. For classes, there are a few subtleties
   around controlling which methods and attributes have pages auto-generated.
 
@@ -90,17 +90,17 @@ Some other important things to know about the docs:
      example.
 
   Every method should be included in a ``toctree`` in one of the documentation files in
-  ``doc/source/reference``, else Sphinx
+  ``docs/source/reference``, else Sphinx
   will emit a warning.
 
 The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
 summary of the API documentation. And also validate common errors in the docstring
 of a specific class, function or method. The summary also compares the list of
-methods documented in the files in ``doc/source/reference`` (which is used to generate
+methods documented in the files in ``docs/source/reference`` (which is used to generate
 the `API Reference <https://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
-This will identify methods documented in ``doc/source/reference`` that are not actually
-class methods, and existing methods that are not documented in ``doc/source/reference``.
+This will identify methods documented in ``docs/source/reference`` that are not actually
+class methods, and existing methods that are not documented in ``docs/source/reference``.
 
 
 Updating a pandas docstring
@@ -142,11 +142,11 @@ Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So how do you build the docs? Navigate to your local
-``doc/`` directory in the console and run::
+``docs/`` directory in the console and run::
 
     python make.py html
 
-Then you can find the HTML output in the folder ``doc/build/html/``.
+Then you can find the HTML output in the folder ``docs/build/html/``.
 
 The first time you build the docs, it will take quite a while because it has to run
 all the code examples and build all the generated docstring pages. In subsequent
@@ -172,7 +172,7 @@ reducing the turn-around time for checking your changes.
     python make.py --no-api
 
     # compile the docs with only a single section, relative to the "source" folder.
-    # For example, compiling only this guide (doc/source/development/contributing.rst)
+    # For example, compiling only this guide (docs/source/development/contributing.rst)
     python make.py clean
     python make.py --single development/contributing.rst
 
@@ -194,7 +194,7 @@ to speed up the documentation build. You can override this::
     python make.py html --num-jobs 4
 
 Open the following file in a web browser to see the full documentation you
-just built ``doc/build/html/index.html``.
+just built ``docs/build/html/index.html``.
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 

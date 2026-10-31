@@ -124,15 +124,15 @@ fi
 if [[ -z "$CHECK" || "$CHECK" == "notebooks" ]]; then
 
     MSG='Notebooks' ; echo $MSG
-    jupyter nbconvert --execute "$(find doc/source -name '*.ipynb')" --to notebook
+    jupyter nbconvert --execute "$(find docs/source -name '*.ipynb')" --to notebook
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
 
 ### SINGLE-PAGE DOCS ###
 if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
-    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
-    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
+    python docs/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
+    python docs/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
 fi
 
 exit $RET

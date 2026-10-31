@@ -742,7 +742,7 @@ Here is a plot showing the running time of
 computation. The two lines are two different engines.
 
 ..
-    The eval-perf.png figure below was generated with /doc/scripts/eval_performance.py
+    The eval-perf.png figure below was generated with /docs/scripts/eval_performance.py
 
 .. image:: ../_static/eval-perf.png
 

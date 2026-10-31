@@ -22,7 +22,7 @@ on:
   pull_request:
     types: [labeled, opened, synchronize, reopened]
     paths-ignore:
-      - "doc/**"
+      - "docs/**"
       - "web/**"
   workflow_dispatch:
 

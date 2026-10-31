@@ -10,7 +10,7 @@ on:
       - main
       - 3.0.x
     paths-ignore:
-      - "doc/**"
+      - "docs/**"
       - "web/**"
 
 permissions:

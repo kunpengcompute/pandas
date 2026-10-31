@@ -6,7 +6,7 @@ ci/deps/actions-.*-minimum_versions.yaml
 pandas/compat/_optional.py
 setup.cfg
 
-TODO: doc/source/getting_started/install.rst
+TODO: docs/source/getting_started/install.rst
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
@@ -25,7 +25,7 @@ import yaml
 from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
 BASE_PATH = pathlib.Path(__file__).parents[1]
-DOC_PATH = (BASE_PATH / "doc/source/getting_started/install.rst").resolve()
+DOC_PATH = (BASE_PATH / "docs/source/getting_started/install.rst").resolve()
 CI_PATH = next(
     (BASE_PATH / "ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
 )
