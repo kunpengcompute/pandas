@@ -180,13 +180,13 @@ repos:
             # builtin filter function
             |(?<!def)[\(\s]filter\(
         types_or: [python, cython, rst]
-        exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
+        exclude: ^docs/source/development/code_style\.rst  # contains examples of patterns to avoid
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
-        files: ^doc/source/
+        files: ^docs/source/
     -   id: seed-check-asv
         name: Check for unnecessary random seeds in asv benchmarks
         language: pygrep
@@ -238,13 +238,13 @@ repos:
         entry: python scripts/validate_rst_title_capitalization.py
         language: python
         types: [rst]
-        files: ^doc/source/(development|reference)/
+        files: ^docs/source/(development|reference)/
     -   id: unwanted-patterns-private-function-across-module
         name: Check for use of private functions across modules
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="private_function_across_module"
         types: [python]
-        exclude: ^(asv_bench|pandas/tests|doc)/
+        exclude: ^(asv_bench|pandas/tests|docs)/
     -   id: unwanted-patterns-private-import-across-module
         name: Check for import of private attributes across modules
         language: python
@@ -252,7 +252,7 @@ repos:
         types: [python]
         exclude: |
             (?x)
-            ^(asv_bench|pandas/tests|doc)/
+            ^(asv_bench|pandas/tests|docs)/
             |scripts/validate_min_versions_in_sync\.py$
     -   id: unwanted-patterns-strings-with-misplaced-whitespace
         name: Check for strings with misplaced spaces
@@ -277,7 +277,7 @@ repos:
         types: [python]
         exclude: ^pandas/tests/
     -   id: pandas-errors-documented
-        name: Ensure pandas errors are documented in doc/source/reference/testing.rst
+        name: Ensure pandas errors are documented in docs/source/reference/testing.rst
         entry: python scripts/pandas_errors_documented.py
         language: python
         files: ^pandas/errors/__init__.py$
@@ -313,5 +313,5 @@ repos:
         entry: python -m scripts.sort_whatsnew_note
         types: [rst]
         language: python
-        files: ^doc/source/whatsnew/v
-        exclude: ^doc/source/whatsnew/v(0|1|2\.0\.0)
+        files: ^docs/source/whatsnew/v
+        exclude: ^docs/source/whatsnew/v(0|1|2\.0\.0)

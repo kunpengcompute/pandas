@@ -94,7 +94,7 @@ if __name__ == "__main__":
     pandas_dir = os.path.dirname(
         os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
     )
-    static_path = os.path.join(pandas_dir, "doc", "source", "_static")
+    static_path = os.path.join(pandas_dir, "docs", "source", "_static")
 
     join = lambda p: os.path.join(static_path, p)
 

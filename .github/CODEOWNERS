@@ -5,10 +5,10 @@
 ci/                               @mroeschke
 
 # docs
-doc/cheatsheet                    @Dr-Irv
-doc/source/development            @noatamir
-doc/source/getting_started        @afeld
-doc/source/user_guide             @afeld
+docs/cheatsheet                    @Dr-Irv
+docs/source/development            @noatamir
+docs/source/getting_started        @afeld
+docs/source/user_guide             @afeld
 
 # pandas
 pandas/_typing.py                 @Dr-Irv

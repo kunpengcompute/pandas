@@ -200,7 +200,7 @@ members. But only core-team members can merge pull requests when they're ready.
 Here are some things to check when reviewing a pull request.
 
 * Tests should be in a sensible location: in the same file as closely related tests.
-* New public APIs should be included somewhere in ``doc/source/reference/``.
+* New public APIs should be included somewhere in ``docs/source/reference/``.
 * New / changed API should use the ``versionadded`` or ``versionchanged`` directives in the docstring.
 * User-facing changes should have a whatsnew in the appropriate file.
 * Regression tests should reference the original GitHub issue number like ``# GH-1234``.

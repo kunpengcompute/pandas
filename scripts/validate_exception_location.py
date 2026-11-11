@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
+API_PATH = pathlib.Path("docs/source/reference/testing.rst").resolve()
 ERROR_MESSAGE = (
     "The following exception(s) and/or warning(s): {errors} exist(s) outside of "
     "pandas/errors/__init__.py. Please either define them in "

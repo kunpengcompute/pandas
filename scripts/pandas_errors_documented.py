@@ -1,5 +1,5 @@
 """
-Check that doc/source/reference/testing.rst documents
+Check that docs/source/reference/testing.rst documents
 all exceptions and warnings in pandas/errors/__init__.py.
 
 This is meant to be run as a pre-commit hook - to run it manually, you can do:
@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
+API_PATH = pathlib.Path("docs/source/reference/testing.rst").resolve()
 
 
 def get_defined_errors(content: str) -> set[str]:
