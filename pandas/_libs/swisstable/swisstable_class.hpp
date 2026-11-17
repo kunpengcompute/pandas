@@ -2064,7 +2064,7 @@ inline void build_row_key(RowKey<N> &key,
     }
 }
 
-// keep: 1 -> "first", 2 -> "last", 0 -> False
+// keep: 1 -> "first", 2 -> "last", 0 -> False; any other value returns -2
 template <size_t N>
 inline int duplicated_rows_impl(const int64_t *const *columns,
                           const uint8_t *is_float,
@@ -2079,7 +2079,7 @@ inline int duplicated_rows_impl(const int64_t *const *columns,
 
     if (keep == 0) {
         // Mark both members of every duplicate pair, so a row can be flagged
-        // more than once; the caller zero-initializes the result.
+        // more than once.
         size_t first_idx = 0;
         for (size_t i = 0; i < n; i++) {
             RowKey<N> key;
@@ -2091,6 +2091,8 @@ inline int duplicated_rows_impl(const int64_t *const *columns,
             if (ret == 0) {
                 result[i] = 1;
                 result[first_idx] = 1;
+            } else {
+                result[i] = 0;
             }
         }
     } else if (keep == 2) {
@@ -2105,7 +2107,7 @@ inline int duplicated_rows_impl(const int64_t *const *columns,
             }
             result[i - 1] = (ret == 0) ? 1 : 0;
         }
-    } else {
+    } else if (keep == 1) {
         for (size_t i = 0; i < n; i++) {
             RowKey<N> key;
             build_row_key<N>(key, columns, is_float, i);
@@ -2115,6 +2117,8 @@ inline int duplicated_rows_impl(const int64_t *const *columns,
             }
             result[i] = (ret == 0) ? 1 : 0;
         }
+    } else {
+        return -2;
     }
     return 0;
 }
@@ -2133,6 +2137,15 @@ inline int duplicated_row_keys(const int64_t *const *columns,
     if (columns == nullptr || is_float == nullptr || result == nullptr
             || ncols < 2 || ncols > MAX_ROW_KEY_WIDTH) {
         return -2;
+    }
+    // Every column pointer is dereferenced for every row, so each one must be
+    // valid as soon as there is a row to read.
+    if (n > 0) {
+        for (size_t j = 0; j < ncols; j++) {
+            if (columns[j] == nullptr) {
+                return -2;
+            }
+        }
     }
 
     switch (ncols) {

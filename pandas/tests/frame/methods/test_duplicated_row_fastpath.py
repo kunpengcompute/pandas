@@ -56,6 +56,34 @@ def _frame(n=N, seed=0):
     )
 
 
+def _wide_frame(ncols):
+    """A supported frame of ``ncols`` columns whose second half repeats the first."""
+    half = N // 2
+    base = np.arange(half, dtype=np.int64)
+    data = {}
+    for i in range(ncols):
+        if i % 3 == 0:
+            data[f"f{i}"] = base / 4.0
+        elif i % 3 == 1:
+            data[f"i{i}"] = (base % 1000).astype("int32")
+        else:
+            data[f"b{i}"] = base % 2 == 0
+    return pd.concat([DataFrame(data)] * 2, ignore_index=True)
+
+
+def _spy_row_kernel(monkeypatch):
+    """Record the column count of every call into the row kernel."""
+    calls = []
+    original = swisstable.duplicated_rows
+
+    def spy(columns, is_float, keep="first"):
+        calls.append(len(columns))
+        return original(columns, is_float, keep=keep)
+
+    monkeypatch.setattr(swisstable, "duplicated_rows", spy)
+    return calls
+
+
 def _column_cases():
     idx = np.arange(N) % 7
     return {
@@ -105,6 +133,38 @@ def test_row_kernel_matches_generic_by_dtype(monkeypatch, name, keep):
 
     assert calls, f"{name} did not take the row kernel"
     tm.assert_series_equal(result, _generic_duplicated(df, keep))
+
+
+@pytest.mark.parametrize("ncols", range(2, 9))
+@pytest.mark.parametrize("keep", ["first", "last", False])
+def test_row_kernel_matches_generic_for_every_width(monkeypatch, ncols, keep):
+    # Every width has its own duplicated_rows_impl<> instantiation, and the
+    # float columns check that is_float is indexed per column.
+    calls = _spy_row_kernel(monkeypatch)
+    df = _wide_frame(ncols)
+
+    result = df.duplicated(keep=keep)
+
+    assert calls == [ncols]
+    tm.assert_series_equal(result, _generic_duplicated(df, keep))
+
+    mask = result.to_numpy()
+    half = len(df) // 2
+    if keep == "first":
+        assert not mask[:half].any() and mask[half:].all()
+    elif keep == "last":
+        assert mask[:half].all() and not mask[half:].any()
+    else:
+        assert mask.all()
+
+
+@pytest.mark.parametrize("keep", [0, np.False_])
+def test_frame_duplicated_accepts_false_like_keep(keep):
+    # The generic path accepts anything equal to False, so the row kernel must
+    # not be stricter than it.
+    df = _wide_frame(3)
+
+    tm.assert_series_equal(df.duplicated(keep=keep), _generic_duplicated(df, keep))
 
 
 @pytest.mark.parametrize("keep", ["first", "last", False])
@@ -204,7 +264,11 @@ def test_row_kernel_column_count_gate(ncols):
     assert algorithms.duplicated_rows_swisstable(columns) is None
 
 
-def test_row_kernel_min_rows_gate():
+def test_row_kernel_min_rows_gate(monkeypatch):
+    def forbidden(values):
+        pytest.fail("columns were converted before the row count gate")
+
+    monkeypatch.setattr(algorithms, "_row_key_array", forbidden)
     columns = [np.arange(16, dtype=np.int64)] * 2
 
     assert algorithms.duplicated_rows_swisstable(columns) is None
@@ -217,8 +281,11 @@ def test_row_kernel_length_mismatch_gate():
 
 
 def test_row_kernel_table_size_gate(monkeypatch):
-    monkeypatch.setattr(algorithms, "_ROW_DEDUP_MAX_TABLE_BYTES", 1)
+    def forbidden(values):
+        pytest.fail("columns were converted before the table size gate")
 
+    monkeypatch.setattr(algorithms, "_ROW_DEDUP_MAX_TABLE_BYTES", 1)
+    monkeypatch.setattr(algorithms, "_row_key_array", forbidden)
     column = np.arange(N, dtype=np.int64)
 
     assert algorithms.duplicated_rows_swisstable([column, column]) is None

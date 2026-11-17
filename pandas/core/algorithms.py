@@ -1145,7 +1145,9 @@ def duplicated(
 # performs one hash probe per row, so it only pays off for frames that are tall
 # enough to amortize the dtype checks below.
 _ROW_DEDUP_MIN_ROWS = 1 << 10
-_ROW_DEDUP_MAX_COLS = 8
+# The width limit of the kernel, taken from the extension so that the two
+# definitions cannot drift apart.
+_ROW_DEDUP_MAX_COLS = swisstable.ROW_DEDUP_MAX_COLS
 # A table slot holds a control byte, one int64 key per column and one size_t
 # slot value, at a 13/16 load factor. Above this size the generic path is both
 # cheaper and far less memory hungry.
@@ -1227,6 +1229,20 @@ def duplicated_rows_swisstable(
     if ncols < 2 or ncols > _ROW_DEDUP_MAX_COLS:
         return None
 
+    # Check the cheap gates first: converting a column can copy it, so a frame
+    # that falls back must not allocate those copies on the way out.
+    try:
+        lengths = [len(column) for column in values]
+    except TypeError:
+        return None
+    n = lengths[0]
+    if n < _ROW_DEDUP_MIN_ROWS:
+        return None
+    if any(length != n for length in lengths):
+        return None
+    if _row_table_nbytes(n, ncols) > _ROW_DEDUP_MAX_TABLE_BYTES:
+        return None
+
     arrays: list[np.ndarray] = []
     is_float = np.zeros(ncols, dtype=np.uint8)
     for i, column in enumerate(values):
@@ -1235,14 +1251,6 @@ def duplicated_rows_swisstable(
             return None
         arrays.append(converted[0])
         is_float[i] = converted[1]
-
-    n = len(arrays[0])
-    if n < _ROW_DEDUP_MIN_ROWS:
-        return None
-    if any(len(arr) != n for arr in arrays):
-        return None
-    if _row_table_nbytes(n, ncols) > _ROW_DEDUP_MAX_TABLE_BYTES:
-        return None
 
     return swisstable.duplicated_rows(arrays, is_float, keep=keep)
 

@@ -2285,18 +2285,24 @@ def duplicated_complex128(const double complex[:] values, object keep="first",
 # =============================================================================
 # Row-wise duplicate detection
 # =============================================================================
+# Width limit of the row-wise kernel, exposed so that the Python dispatch layer
+# reuses the C++ bound instead of duplicating it.
+ROW_DEDUP_MAX_COLS = int(MAX_ROW_KEY_WIDTH)
+
+
 # ``columns`` holds one int64 array per frame column, already widened to the
 # canonical representation by pandas.core.algorithms._row_key_array.
 # ``is_float`` flags the columns whose bits are float64 values, which the kernel
 # canonicalizes so that -0.0/+0.0 and every NaN payload compare equal.
 cdef inline int _row_dedup_keep_code(object keep) except -1:
+    if keep not in ("first", "last", False):
+        raise ValueError('keep must be either "first", "last" or False')
     if keep == "first":
         return 1
     elif keep == "last":
         return 2
-    elif keep is False:
-        return 0
-    raise ValueError('keep must be either "first", "last" or False')
+    # ``keep=0`` and ``np.False_`` behave like False on the generic path.
+    return 0
 
 
 def duplicated_rows(list columns, const uint8_t[::1] is_float,
@@ -2332,7 +2338,9 @@ def duplicated_rows(list columns, const uint8_t[::1] is_float,
         int ret
 
     if ncols < 2 or ncols > MAX_ROW_KEY_WIDTH:
-        raise ValueError("duplicated_rows requires 2 to 8 columns")
+        raise ValueError(
+            f"duplicated_rows requires 2 to {ROW_DEDUP_MAX_COLS} columns"
+        )
     if len(is_float) != ncols:
         raise ValueError("is_float must hold one flag per column")
 
@@ -2354,11 +2362,9 @@ def duplicated_rows(list columns, const uint8_t[::1] is_float,
 
         if n == 0:
             return np.zeros(0, dtype=np.bool_)
-        elif keep_code == 0:
-            # keep=False flags a row from both sides, so start from all zeros
-            result = np.zeros(n, dtype=np.uint8)
-        else:
-            result = np.empty(n, dtype=np.uint8)
+        # duplicated_row_keys writes every element, including the False side of
+        # keep=False, so the buffer does not need to be pre-zeroed.
+        result = np.empty(n, dtype=np.uint8)
 
         with nogil:
             ret = duplicated_row_keys(column_ptrs, <size_t>ncols,
