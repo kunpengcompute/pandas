@@ -126,6 +126,19 @@ cdef extern from "swisstable/swisstable_class.hpp" namespace "pandas::swisstable
             uint8_t *result
         )
 
+    const size_t MAX_ROW_KEY_WIDTH
+
+    # Row-wise duplicate detection over a tuple of canonical int64 columns
+    # (see pandas.core.algorithms.duplicated_rows_swisstable)
+    int duplicated_row_keys(
+        const int64_t **columns,
+        size_t ncols,
+        const uint8_t *is_float,
+        size_t n,
+        uint8_t keep,
+        uint8_t *result
+    )
+
     # Complex types
     ctypedef struct swiss_complex64_t:
         float real

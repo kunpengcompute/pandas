@@ -8215,6 +8215,19 @@ class DataFrame(NDFrame, OpsMixin):
                 result = self[next(iter(subset))].duplicated(keep)
                 result.name = None
         else:
+            if IS_ARM:
+                dup_result = algorithms.duplicated_rows_swisstable(
+                    [
+                        self._get_column_array(i)
+                        for i, name in enumerate(self.columns)
+                        if name in subset
+                    ],
+                    keep,
+                )
+                if dup_result is not None:
+                    result = self._constructor_sliced(dup_result, index=self.index)
+                    return result.__finalize__(self, method="duplicated")
+
             vals = (col.values for name, col in self.items() if name in subset)
             labels, shape = map(list, zip(*map(f, vals), strict=True))
 

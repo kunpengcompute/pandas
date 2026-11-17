@@ -36,6 +36,7 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
+from pandas.compat._arch import IS_ARM
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -1138,6 +1139,112 @@ def duplicated(
             return func(values, keep=keep, mask=mask_uint8)
 
     return htable.duplicated(values, keep=keep, mask=mask)
+
+
+# Row-wise duplicate detection (see duplicated_rows_swisstable). The kernel
+# performs one hash probe per row, so it only pays off for frames that are tall
+# enough to amortize the dtype checks below.
+_ROW_DEDUP_MIN_ROWS = 1 << 10
+_ROW_DEDUP_MAX_COLS = 8
+# A table slot holds a control byte, one int64 key per column and one size_t
+# slot value, at a 13/16 load factor. Above this size the generic path is both
+# cheaper and far less memory hungry.
+_ROW_DEDUP_MAX_TABLE_BYTES = 512 << 20
+
+
+def _row_table_nbytes(n: int, ncols: int) -> int:
+    """
+    Bytes the row hash table needs for ``n`` rows over ``ncols`` columns.
+
+    Mirrors SwissTable::init_with_capacity: slots are rounded up to a power of
+    two covering ``n`` rows at a 13/16 load factor, with a minimum of one group.
+    """
+    slots = 16
+    want = (n * 16 + 12) // 13
+    if want > slots:
+        slots = 1 << (want - 1).bit_length()
+    return slots * (1 + 8 * ncols + 8)
+
+
+def _row_key_array(values: ArrayLike) -> tuple[np.ndarray, int] | None:
+    """
+    Convert one column to the canonical int64 representation of the row kernel.
+
+    A dtype is accepted when 64 bits describe each value uniquely: booleans,
+    integers, datetimes and timedeltas use their bit pattern, float64 keeps its
+    raw bits and float16/float32 are widened to float64 (exact, since every
+    such value is representable). Dtypes with a different notion of equality
+    (object, strings, complex, masked or pyarrow extensions, longdouble) return
+    None and keep the generic path.
+
+    Returns ``(array, is_float)``, where ``is_float`` marks columns whose bits
+    came from a float dtype and therefore need -0.0/NaN canonicalization.
+    """
+    if isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray)):
+        # Both extension arrays store their values as int64 codes.
+        return values.asi8, 0
+    if not isinstance(values, np.ndarray) or values.ndim != 1:
+        return None
+
+    dtype = values.dtype
+    if not dtype.isnative:
+        # The kernel compares native int64 bit patterns.
+        return None
+    values = np.ascontiguousarray(values)
+    kind = dtype.kind
+    if kind == "b":
+        return values.astype(np.int64), 0
+    if kind in "iu":
+        if dtype.itemsize == 8:
+            return values.view(np.int64), 0
+        return values.astype(np.int64), 0
+    if kind in "mM":
+        return values.view(np.int64), 0
+    if kind == "f":
+        if dtype.itemsize == 8:
+            return values.view(np.int64), 1
+        if dtype.itemsize < 8:  # float16/float32 widen exactly
+            return values.astype(np.float64).view(np.int64), 1
+        return None  # longdouble: narrowing would merge distinct values
+    return None
+
+
+def duplicated_rows_swisstable(
+    values: list[ArrayLike],
+    keep: Literal["first", "last", False] = "first",
+) -> npt.NDArray[np.bool_] | None:
+    """
+    Detect duplicated rows across 2-8 primitive columns.
+
+    On AArch64 the rows are hashed directly as tuples of canonical 64-bit
+    values, which replaces factorizing every column and hashing the combined
+    codes. Returns None when the inputs are not eligible, in which case callers
+    fall back to the generic path.
+    """
+    if not IS_ARM or not get_use_swisstable():
+        return None
+    ncols = len(values)
+    if ncols < 2 or ncols > _ROW_DEDUP_MAX_COLS:
+        return None
+
+    arrays: list[np.ndarray] = []
+    is_float = np.zeros(ncols, dtype=np.uint8)
+    for i, column in enumerate(values):
+        converted = _row_key_array(column)
+        if converted is None:
+            return None
+        arrays.append(converted[0])
+        is_float[i] = converted[1]
+
+    n = len(arrays[0])
+    if n < _ROW_DEDUP_MIN_ROWS:
+        return None
+    if any(len(arr) != n for arr in arrays):
+        return None
+    if _row_table_nbytes(n, ncols) > _ROW_DEDUP_MAX_TABLE_BYTES:
+        return None
+
+    return swisstable.duplicated_rows(arrays, is_float, keep=keep)
 
 
 def mode(
