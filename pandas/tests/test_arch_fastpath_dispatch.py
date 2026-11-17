@@ -45,7 +45,7 @@ def _set_fastpaths(monkeypatch: pytest.MonkeyPatch, enabled: bool) -> None:
         ("AMD64", "1", False),
     ],
 )
-def test_boostkit_fastpaths_environment(
+def test_arch_fastpath_environment(
     monkeypatch: pytest.MonkeyPatch,
     machine: str,
     setting: str | None,
