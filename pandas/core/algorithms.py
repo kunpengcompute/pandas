@@ -1179,6 +1179,10 @@ def _row_key_array(values: ArrayLike) -> tuple[np.ndarray, int] | None:
     (object, strings, complex, masked or pyarrow extensions, longdouble) return
     None and keep the generic path.
 
+    DatetimeArray and TimedeltaArray also return None when their int64 views
+    are not C-contiguous, since the row kernel requires contiguous int64
+    memoryviews.
+
     Returns ``(array, is_float)``, where ``is_float`` marks columns whose bits
     came from a float dtype and therefore need -0.0/NaN canonicalization.
     """
