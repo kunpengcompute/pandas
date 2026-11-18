@@ -135,6 +135,30 @@ def test_row_kernel_matches_generic_by_dtype(monkeypatch, name, keep):
     tm.assert_series_equal(result, _generic_duplicated(df, keep))
 
 
+@pytest.mark.parametrize("kind", ["datetime64[ns]", "timedelta64[ns]"])
+@pytest.mark.parametrize("keep", ["first", "last", False])
+def test_non_contiguous_temporal_columns_fall_back(monkeypatch, kind, keep):
+    storage = np.zeros(N * 2, dtype=np.int64)
+    storage[::2] = np.arange(N, dtype=np.int64) % 31
+    raw = storage[::2]
+    temporal = raw.view(kind)
+    df = DataFrame(
+        {
+            "temporal": pd.Series(temporal, copy=False),
+            "repeat": np.arange(N, dtype=np.int64) % 31,
+        },
+        copy=False,
+    )
+
+    assert not df._get_column_array(0).asi8.flags.c_contiguous
+    calls = _spy_row_kernel(monkeypatch)
+
+    result = df.duplicated(keep=keep)
+
+    assert calls == []
+    tm.assert_series_equal(result, _generic_duplicated(df, keep))
+
+
 @pytest.mark.parametrize("ncols", range(2, 9))
 @pytest.mark.parametrize("keep", ["first", "last", False])
 def test_row_kernel_matches_generic_for_every_width(monkeypatch, ncols, keep):

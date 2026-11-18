@@ -1184,7 +1184,13 @@ def _row_key_array(values: ArrayLike) -> tuple[np.ndarray, int] | None:
     """
     if isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray)):
         # Both extension arrays store their values as int64 codes.
-        return values.asi8, 0
+        values = values.asi8
+        # The row-wise Cython kernel requires contiguous int64 memoryviews.
+        # Preserve the generic path for strided arrays rather than copying or
+        # raising while binding the memoryview.
+        if not values.flags.c_contiguous:
+            return None
+        return values, 0
     if not isinstance(values, np.ndarray) or values.ndim != 1:
         return None
 
