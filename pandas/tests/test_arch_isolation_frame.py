@@ -294,3 +294,25 @@ def test_fillna_single_ea_block_arm_matches_base(monkeypatch, values, fill_value
     result = df.fillna({"a": fill_value})
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_duplicated_multi_column_non_arm_uses_generic_path(monkeypatch):
+    from pandas._libs import swisstable
+
+    monkeypatch.setattr(frame, "IS_ARM", False, raising=False)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("non-ARM DataFrame.duplicated used the row kernel")
+
+    monkeypatch.setattr(swisstable, "duplicated_rows", forbidden)
+
+    n = 2048
+    df = DataFrame(
+        {"a": np.arange(n) % 3, "b": np.arange(n) % 2, "c": np.arange(n) % 5}
+    )
+    result = df.duplicated()
+
+    # (i % 3, i % 2, i % 5) repeats with period 30, so rows 30+ are duplicates
+    expected = Series([False] * n)
+    expected.iloc[30:] = True
+    tm.assert_series_equal(result, expected)

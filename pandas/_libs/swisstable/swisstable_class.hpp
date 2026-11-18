@@ -1992,4 +1992,180 @@ private:
     void *alloc_;         // Single allocation block
 };
 
+
+// =============================================================================
+// Row-wise duplicate detection
+// =============================================================================
+// DataFrame.duplicated factorizes every column and then hashes the combined
+// codes. When each column reduces to one canonical 64-bit value a row *is* the
+// tuple of those values, so a single hash table over the tuple finds duplicate
+// rows with one probe per row instead of hashing the combined codes again.
+//
+// The Python layer widens the supported columns to int64 (bit patterns for
+// booleans, integers, datetimes and float64). Float bits are canonicalized here
+// so that +0.0/-0.0 and every NaN payload compare equal, which is what the
+// factorize-based path does. Frames wider than MAX_ROW_KEY_WIDTH and columns
+// without a 64-bit representation keep the generic path.
+
+constexpr size_t MAX_ROW_KEY_WIDTH = 8;
+
+template <size_t N>
+struct RowKey {
+    uint64_t values[N];
+};
+
+template <size_t N>
+struct RowKeyHash {
+    static inline uint64_t hash(const RowKey<N> &key) noexcept
+    {
+        uint64_t h = 0x9E3779B97F4A7C15ULL;
+        for (size_t i = 0; i < N; i++) {
+            h = swiss_splitmix64(h ^ key.values[i]);
+        }
+        return h;
+    }
+};
+
+template <size_t N>
+struct RowKeyEqual {
+    static inline bool equal(const RowKey<N> &lhs, const RowKey<N> &rhs) noexcept
+    {
+        for (size_t i = 0; i < N; i++) {
+            if (lhs.values[i] != rhs.values[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+// Canonicalize float64 bits: -0.0 becomes +0.0 and every NaN payload becomes
+// one quiet NaN, so table equality matches pandas' NaN-aware semantics.
+inline uint64_t canonical_float64_bits(uint64_t bits) noexcept
+{
+    if ((bits & 0x7FFFFFFFFFFFFFFFULL) > 0x7FF0000000000000ULL) {
+        return 0x7FF8000000000000ULL;  // any NaN
+    }
+    if (bits == 0x8000000000000000ULL) {
+        return 0;  // -0.0
+    }
+    return bits;
+}
+
+template <size_t N>
+inline void build_row_key(RowKey<N> &key,
+                          const int64_t *const *columns,
+                          const uint8_t *is_float,
+                          size_t i) noexcept
+{
+    for (size_t j = 0; j < N; j++) {
+        uint64_t bits = static_cast<uint64_t>(columns[j][i]);
+        key.values[j] = is_float[j] ? canonical_float64_bits(bits) : bits;
+    }
+}
+
+// keep: 1 -> "first", 2 -> "last", 0 -> False; any other value returns -2
+template <size_t N>
+inline int duplicated_rows_impl(const int64_t *const *columns,
+                          const uint8_t *is_float,
+                          size_t n,
+                          uint8_t keep,
+                          uint8_t *result) noexcept
+{
+    SwissTable<RowKey<N>, size_t, RowKeyHash<N>, RowKeyEqual<N>> table;
+    if (!table.reserve(n)) {
+        return -1;
+    }
+
+    if (keep == 0) {
+        // Mark both members of every duplicate pair, so a row can be flagged
+        // more than once.
+        size_t first_idx = 0;
+        for (size_t i = 0; i < n; i++) {
+            RowKey<N> key;
+            build_row_key<N>(key, columns, is_float, i);
+            int ret = table.insert_if_absent(key, i, &first_idx);
+            if (ret == -1) {
+                return -1;
+            }
+            if (ret == 0) {
+                result[i] = 1;
+                result[first_idx] = 1;
+            } else {
+                result[i] = 0;
+            }
+        }
+    } else if (keep == 2) {
+        // "last": a row is a duplicate when a later row repeats it, so walk
+        // backwards and keep the first one seen.
+        for (size_t i = n; i > 0; i--) {
+            RowKey<N> key;
+            build_row_key<N>(key, columns, is_float, i - 1);
+            int ret = table.insert_key_only(key);
+            if (ret == -1) {
+                return -1;
+            }
+            result[i - 1] = (ret == 0) ? 1 : 0;
+        }
+    } else if (keep == 1) {
+        for (size_t i = 0; i < n; i++) {
+            RowKey<N> key;
+            build_row_key<N>(key, columns, is_float, i);
+            int ret = table.insert_key_only(key);
+            if (ret == -1) {
+                return -1;
+            }
+            result[i] = (ret == 0) ? 1 : 0;
+        }
+    } else {
+        return -2;
+    }
+    return 0;
+}
+
+// Mark every row that repeats an earlier row (keep=1), a later row (keep=2) or
+// any other row (keep=0) over ``ncols`` columns of canonical int64 values.
+// Returns 0 on success, -1 when the table cannot be allocated and -2 when the
+// arguments are unsupported.
+inline int duplicated_row_keys(const int64_t *const *columns,
+                               size_t ncols,
+                               const uint8_t *is_float,
+                               size_t n,
+                               uint8_t keep,
+                               uint8_t *result) noexcept
+{
+    if (columns == nullptr || is_float == nullptr || result == nullptr
+            || ncols < 2 || ncols > MAX_ROW_KEY_WIDTH) {
+        return -2;
+    }
+    // Every column pointer is dereferenced for every row, so each one must be
+    // valid as soon as there is a row to read.
+    if (n > 0) {
+        for (size_t j = 0; j < ncols; j++) {
+            if (columns[j] == nullptr) {
+                return -2;
+            }
+        }
+    }
+
+    switch (ncols) {
+        case 2:
+            return duplicated_rows_impl<2>(columns, is_float, n, keep, result);
+        case 3:
+            return duplicated_rows_impl<3>(columns, is_float, n, keep, result);
+        case 4:
+            return duplicated_rows_impl<4>(columns, is_float, n, keep, result);
+        case 5:
+            return duplicated_rows_impl<5>(columns, is_float, n, keep, result);
+        case 6:
+            return duplicated_rows_impl<6>(columns, is_float, n, keep, result);
+        case 7:
+            return duplicated_rows_impl<7>(columns, is_float, n, keep, result);
+        case 8:
+            return duplicated_rows_impl<8>(columns, is_float, n, keep, result);
+        default:
+            return -2;
+    }
+}
+
 }  // namespace pandas::swisstable

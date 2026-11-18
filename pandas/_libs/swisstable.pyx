@@ -32,6 +32,7 @@ Integration Methods (matching khash HashTable API):
 """
 
 cimport cython
+from cpython.mem cimport PyMem_Free, PyMem_Malloc
 from cpython.object cimport PyObject
 from cpython.ref cimport Py_INCREF, Py_DECREF
 from libc.math cimport isnan
@@ -2277,5 +2278,104 @@ def duplicated_complex128(const double complex[:] values, object keep="first",
                         break
         if ret == -1:
             raise MemoryError("Failed to insert into Swiss table")
+
+    return np.asarray(result).view(np.bool_)
+
+
+# =============================================================================
+# Row-wise duplicate detection
+# =============================================================================
+# Width limit of the row-wise kernel, exposed so that the Python dispatch layer
+# reuses the C++ bound instead of duplicating it.
+ROW_DEDUP_MAX_COLS = int(MAX_ROW_KEY_WIDTH)
+
+
+# ``columns`` holds one int64 array per frame column, already widened to the
+# canonical representation by pandas.core.algorithms._row_key_array.
+# ``is_float`` flags the columns whose bits are float64 values, which the kernel
+# canonicalizes so that -0.0/+0.0 and every NaN payload compare equal.
+cdef inline int _row_dedup_keep_code(object keep) except -1:
+    if keep not in ("first", "last", False):
+        raise ValueError('keep must be either "first", "last" or False')
+    if keep == "first":
+        return 1
+    elif keep == "last":
+        return 2
+    # ``keep=0`` and ``np.False_`` behave like False on the generic path.
+    return 0
+
+
+def duplicated_rows(list columns, const uint8_t[::1] is_float,
+                    object keep="first"):
+    """
+    Return a boolean mask marking duplicated rows across ``columns``.
+
+    Each column must be a contiguous int64 array holding the canonical bits of
+    its values (see pandas.core.algorithms._row_key_array) and ``is_float``
+    must hold one flag per column. Two to eight columns are supported.
+
+    Parameters
+    ----------
+    columns : list of ndarray[int64]
+        Canonical row keys, one array per column.
+    is_float : ndarray[uint8]
+        One flag per column, non-zero when the bits came from a float dtype.
+    keep : {'first', 'last', False}, default 'first'
+        Which occurrences of a duplicated row are marked.
+
+    Returns
+    -------
+    ndarray[bool]
+    """
+    cdef:
+        Py_ssize_t ncols = len(columns)
+        Py_ssize_t n = 0
+        Py_ssize_t i
+        const int64_t[::1] column
+        const int64_t **column_ptrs = NULL
+        np_uint8_t[::1] result
+        int keep_code
+        int ret
+
+    if ncols < 2 or ncols > MAX_ROW_KEY_WIDTH:
+        raise ValueError(
+            f"duplicated_rows requires 2 to {ROW_DEDUP_MAX_COLS} columns"
+        )
+    if len(is_float) != ncols:
+        raise ValueError("is_float must hold one flag per column")
+
+    keep_code = _row_dedup_keep_code(keep)
+
+    column_ptrs = <const int64_t **>PyMem_Malloc(
+        ncols * sizeof(const int64_t *))
+    if column_ptrs == NULL:
+        raise MemoryError("Failed to allocate row key columns")
+
+    try:
+        for i in range(ncols):
+            column = columns[i]
+            if i == 0:
+                n = column.shape[0]
+            elif column.shape[0] != n:
+                raise ValueError("all columns must have the same length")
+            column_ptrs[i] = &column[0] if n > 0 else NULL
+
+        if n == 0:
+            return np.zeros(0, dtype=np.bool_)
+        # duplicated_row_keys writes every element, including the False side of
+        # keep=False, so the buffer does not need to be pre-zeroed.
+        result = np.empty(n, dtype=np.uint8)
+
+        with nogil:
+            ret = duplicated_row_keys(column_ptrs, <size_t>ncols,
+                                      &is_float[0], <size_t>n,
+                                      <uint8_t>keep_code, &result[0])
+    finally:
+        PyMem_Free(column_ptrs)
+
+    if ret == -1:
+        raise MemoryError("Failed to insert into Swiss table")
+    elif ret == -2:
+        raise ValueError("invalid row duplicate arguments")
 
     return np.asarray(result).view(np.bool_)
