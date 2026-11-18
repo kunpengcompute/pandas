@@ -1244,15 +1244,15 @@ def duplicated_rows_swisstable(
         return None
 
     arrays: list[np.ndarray] = []
-    is_float = np.zeros(ncols, dtype=np.uint8)
+    float_flags = np.zeros(ncols, dtype=np.uint8)
     for i, column in enumerate(values):
         converted = _row_key_array(column)
         if converted is None:
             return None
         arrays.append(converted[0])
-        is_float[i] = converted[1]
+        float_flags[i] = converted[1]
 
-    return swisstable.duplicated_rows(arrays, is_float, keep=keep)
+    return swisstable.duplicated_rows(arrays, float_flags, keep=keep)
 
 
 def mode(
