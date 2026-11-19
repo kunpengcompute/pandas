@@ -16,8 +16,8 @@ conda create -n py314 python=3.14 -y && conda activate py314
 mkdir -p ~/whl-install && cd ~/whl-install
 
 # 一键下载高性能numpy和pandas软件包
-curl -fLO -k "https://gitcode.com/boostkit/numpy/releases/download/v2.4.3.0-rc2/numpy-2.4.3-cp314-cp314-manylinux_2_34_aarch64.whl"
-curl -fL -k -o "pandas-3.0.1 270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl" \
+curl -fLO "https://gitcode.com/boostkit/numpy/releases/download/v2.4.3.0-rc2/numpy-2.4.3-cp314-cp314-manylinux_2_34_aarch64.whl"
+curl -fL -o "pandas-3.0.1 270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl" \
 "https://gitcode.com/boostkit/pandas/releases/download/v3.0.1-poc/pandas-3.0.1%20270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl"
 mv "pandas-3.0.1 270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl" pandas-3.0.1+270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl
 
