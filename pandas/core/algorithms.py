@@ -1179,12 +1179,22 @@ def _row_key_array(values: ArrayLike) -> tuple[np.ndarray, int] | None:
     (object, strings, complex, masked or pyarrow extensions, longdouble) return
     None and keep the generic path.
 
+    DatetimeArray and TimedeltaArray also return None when their int64 views
+    are not C-contiguous, since the row kernel requires contiguous int64
+    memoryviews.
+
     Returns ``(array, is_float)``, where ``is_float`` marks columns whose bits
     came from a float dtype and therefore need -0.0/NaN canonicalization.
     """
     if isinstance(values, (ABCDatetimeArray, ABCTimedeltaArray)):
         # Both extension arrays store their values as int64 codes.
-        return values.asi8, 0
+        values = values.asi8
+        # The row-wise Cython kernel requires contiguous int64 memoryviews.
+        # Preserve the generic path for strided arrays rather than copying or
+        # raising while binding the memoryview.
+        if not values.flags.c_contiguous:
+            return None
+        return values, 0
     if not isinstance(values, np.ndarray) or values.ndim != 1:
         return None
 
