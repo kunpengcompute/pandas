@@ -61,23 +61,23 @@ BoostKit pandas深度融合鲲鹏ARM64架构特性，在保持与上游社区pan
 </thead>
 <tbody>
   <tr>
-    <td><a href="https://gitcode.com/boostkit/pandas/docs/zh/release_notes.md">版本说明书</a></td>
+    <td><a href="docs/zh/release_notes.md">版本说明书</a></td>
     <td>提供pandas软件发布说明。</td>
   </tr>
   <tr>
-    <td><a href="https://gitcode.com/boostkit/pandas/docs/zh/quick_start.md">快速入门</a></td>
+    <td><a href="docs/zh/quick_start.md">快速入门</a></td>
     <td>提供pandas特性在一个典型使用场景下的最简化快速上手指导。</td>
   </tr>
   <tr>
-    <td><a href="https://gitcode.com/boostkit/pandas/docs/zh/compilation_build_guide.md">编译构建指南</a></td>
+    <td><a href="docs/zh/compilation_build_guide.md">编译构建指南</a></td>
     <td>提供pandas软件源码包编译构建指导。</td>
   </tr>
   <tr>
-    <td><a href="https://gitcode.com/boostkit/pandas/docs/zh/installation_guide.md">安装指南</a></td>
+    <td><a href="docs/zh/installation_guide.md">安装指南</a></td>
     <td>提供pandas软件打包后二进制包的安装指导。</td>
   </tr>
   <tr>
-    <td><a href="https://gitcode.com/boostkit/pandas/docs/zh/user_guide.md">用户指南</a></td>
+    <td><a href="docs/zh/user_guide.md">用户指南</a></td>
     <td>提供pandas特性功能、架构、原理、应用场景、配置使能、运维、故障处理等使用指导。</td>
   </tr>
 </tbody>

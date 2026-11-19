@@ -101,6 +101,9 @@ pd.get_option("compute.use_swisstable")
 可以在`with`代码块内部配置临时启用或关闭SwissTable，退出代码块后自动恢复全局默认值。
 
 ```python
+df = pd.DataFrame({"key": [1, 2, 3, 2]})
+values = [2, 3]
+
 with pd.option_context("compute.use_swisstable", True):
     result = df["key"].isin(values)
 
