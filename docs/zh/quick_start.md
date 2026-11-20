@@ -6,6 +6,8 @@
 
 本指南以conda虚拟环境为例，快速安装部署pandas。
 
+执行以下命令前，请先安装适合目标平台的Anaconda或Miniconda（二选一），并完成当前终端的conda初始化，确保可以使用`conda activate`。
+
 ```bash
 # 创建并激活纯净的Python 3.14环境
 conda create -n py314 python=3.14 -y && conda activate py314
@@ -14,8 +16,8 @@ conda create -n py314 python=3.14 -y && conda activate py314
 mkdir -p ~/whl-install && cd ~/whl-install
 
 # 一键下载高性能numpy和pandas软件包
-curl -fLO -k "https://gitcode.com/boostkit/numpy/releases/download/v2.4.3.0-rc2/numpy-2.4.3-cp314-cp314-manylinux_2_34_aarch64.whl"
-curl -fL -k -o "pandas-3.0.1 270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl" \
+curl -fLO "https://gitcode.com/boostkit/numpy/releases/download/v2.4.3.0-rc2/numpy-2.4.3-cp314-cp314-manylinux_2_34_aarch64.whl"
+curl -fL -o "pandas-3.0.1 270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl" \
 "https://gitcode.com/boostkit/pandas/releases/download/v3.0.1-poc/pandas-3.0.1%20270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl"
 mv "pandas-3.0.1 270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl" pandas-3.0.1+270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aarch64.whl
 
@@ -28,20 +30,19 @@ python -m pip install pandas-3.0.1+270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aa
 
 安装完成后，通过一段标准的高频业务代码，体验鲲鹏加速算子的能力。
 
-1. 创建`demo.py`文件并运行。
+1. 创建`demo.py`文件。
 
-    ```cmd
+    ```bash
     touch demo.py
-    python demo.py
     ```
 
 2. 打开`demo.py`文件。
 
-    ```cmd
+    ```bash
     vi demo.py
     ```
 
-3. 复制以下示例代码到`demo.py`文件中。
+3. 按`i`进入插入模式，复制以下示例代码到`demo.py`文件中。
 
     ```python
     import numpy as np
@@ -65,11 +66,17 @@ python -m pip install pandas-3.0.1+270.g5a98f9ba40-cp314-cp314-manylinux_2_34_aa
     print(result)
     ```
 
-4. 输入”:wq"保存并退出编辑。
+4. 按`Esc`退出插入模式，输入`:wq`并按回车保存并退出编辑。
 
-5. 查看返回信息，确认运行成功。
+5. 在同一已激活的conda环境中运行脚本。
 
-    ```cmd
+    ```bash
+    python demo.py
+    ```
+
+6. 查看返回信息，确认运行成功。
+
+    ```text
     统计结果成功输出：
     category
     Books          1.248620e+07
